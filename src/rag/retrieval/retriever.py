@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from rag.vectorstore.chroma import ChromaVectorStore
 
 
 @dataclass(slots=True, frozen=True)
 class RetrievedChunk:
-    """A document chunk returned by the retrieval system."""
+    """A document chunk returned by a retrieval system."""
 
     id: str
     text: str
@@ -16,8 +16,20 @@ class RetrievedChunk:
     metadata: dict[str, Any]
 
 
-class Retriever:
-    """Retrieve relevant document chunks for a query."""
+class RetrieverProtocol(Protocol):
+    """Common interface that all retrievers must implement."""
+
+    def retrieve(
+        self,
+        query: str,
+        k: int = 3,
+    ) -> list[RetrievedChunk]:
+        """Retrieve the top-k chunks for a query."""
+        ...
+
+
+class DenseRetriever:
+    """Retrieve document chunks using dense vector similarity search."""
 
     def __init__(
         self,
@@ -30,7 +42,13 @@ class Retriever:
         query: str,
         k: int = 3,
     ) -> list[RetrievedChunk]:
-        """Retrieve the top-k most relevant chunks."""
+        """Retrieve the top-k most semantically similar chunks."""
+
+        query = query.strip()
+
+        if not query:
+            raise ValueError("query cannot be empty")
+
         if k <= 0:
             raise ValueError("k must be greater than 0")
 
@@ -66,27 +84,28 @@ class Retriever:
 
         return chunks
 
-    @staticmethod
-    def build_context(
-        chunks: list[RetrievedChunk],
-    ) -> str:
-        """Format retrieved chunks into LLM context."""
-        context_parts: list[str] = []
 
-        for index, chunk in enumerate(chunks, start=1):
-            source = chunk.source or "unknown"
+def build_context(
+    chunks: list[RetrievedChunk],
+) -> str:
+    """Format retrieved chunks into context for the LLM."""
 
-            chunk_label = (
-                str(chunk.chunk_index)
-                if chunk.chunk_index is not None
-                else "unknown"
-            )
+    context_parts: list[str] = []
 
-            context_parts.append(
-                f"[Document {index}]\n"
-                f"Source: {source}\n"
-                f"Chunk: {chunk_label}\n"
-                f"{chunk.text}"
-            )
+    for index, chunk in enumerate(chunks, start=1):
+        source = chunk.source or "unknown"
 
-        return "\n\n".join(context_parts)
+        chunk_label = (
+            str(chunk.chunk_index)
+            if chunk.chunk_index is not None
+            else "unknown"
+        )
+
+        context_parts.append(
+            f"[Document {index}]\n"
+            f"Source: {source}\n"
+            f"Chunk: {chunk_label}\n"
+            f"{chunk.text}"
+        )
+
+    return "\n\n".join(context_parts)

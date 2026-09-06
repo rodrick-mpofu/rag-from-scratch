@@ -2,7 +2,10 @@ from dataclasses import dataclass
 
 from rag.generation.llm import OllamaLLM
 from rag.generation.prompts import build_rag_messages
-from rag.retrieval.retriever import Retriever
+from rag.retrieval.retriever import (
+    RetrieverProtocol,
+    build_context,
+)
 
 
 @dataclass(slots=True)
@@ -29,7 +32,7 @@ class RAGService:
 
     def __init__(
         self,
-        retriever: Retriever,
+        retriever: RetrieverProtocol,
         llm: OllamaLLM,
         default_top_k: int = 3,
     ) -> None:
@@ -79,7 +82,7 @@ class RAGService:
             )
 
         # 2. Context construction
-        context = self.retriever.build_context(chunks)
+        context = build_context(chunks)
 
         # 3. Prompt construction
         messages = build_rag_messages(

@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environments
+.venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# RAG data
+data/chroma/
+
+# Experiment outputs
+outputs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
