@@ -148,3 +148,37 @@ class ChromaVectorStore:
     def count(self) -> int:
         """Return number of indexed chunks."""
         return self.collection.count()
+
+    def get_all(self) -> list[VectorSearchResult]:
+        """Return all stored document chunks."""
+
+        results = self.collection.get(
+            include=["documents", "metadatas"],
+        )
+
+        ids = results.get("ids") or []
+        documents = results.get("documents") or []
+        metadatas = results.get("metadatas") or []
+
+        stored: list[VectorSearchResult] = []
+
+        for index, document in enumerate(documents):
+            if document is None:
+                continue
+
+            metadata = (
+                metadatas[index]
+                if index < len(metadatas)
+                else None
+            )
+
+            stored.append(
+                VectorSearchResult(
+                    id=ids[index],
+                    document=document,
+                    metadata=dict(metadata or {}),
+                    distance=None,
+                )
+            )
+
+        return stored
